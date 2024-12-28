@@ -51,57 +51,6 @@ const post = {
 
 const axios = require('axios');
 
-// function PublishPostOnTelegram(postId, callback) {
-//     const query = `SELECT * FROM posts WHERE id = ${postId}`;
-//     db.query(query, (err, result) => {
-//         if (err) return callback(err);
-//         const post = result[0];
-//         if (!post || !post.publish_time) {
-//             console.log("Publish time not available.");
-//             return;
-//         }
-
-//         const publishTime = convertToDate(post.publish_time); // Hàm convertToDate cần được định nghĩa
-//         const currentTime = new Date();
-//         const timeDifference = publishTime - currentTime;
-
-//         if (timeDifference < 0) {
-//             console.log("Publish time has already passed.");
-//             return;
-//         }
-
-//         console.log(`Post will be published in ${timeDifference / 1000} seconds.`);
-
-//         const channel_id = post.channel_id;
-//         const queryChannel = `SELECT * FROM channels WHERE id = ${channel_id}`;
-
-//         db.query(queryChannel, (err, result) => {
-//             if (err) return callback(err);
-//             const channel_telegram_id = result[0].channel_id;
-
-//             setTimeout(async () => {
-//                 var token = "7595483489:AAGak9jImk9voGjXiNOVqL4EO02_26q2HD8";
-//                 var url = "https://api.telegram.org/bot" + token + "/sendMessage";
-//                 var seleniumResult = await SeleniumForBybit();
-//                 var requestURL = `${url}?chat_id=${channel_telegram_id}&text=${encodeURIComponent(seleniumResult)}&parse_mode=html`;
-
-//                 // Sử dụng axios để gửi request
-//                 axios.get(requestURL)
-//                     .then(response => {
-//                         var telegram_post_id = "https://t.me/" + response.data.result.sender_chat.username + "/" + response.data.result.message_id
-//                         const queryUpdate = `update posts set status = 2, telegram_post_id = '${telegram_post_id}', post_contents ='${seleniumResult}' where id = ${postId}`
-//                         db.query(queryUpdate, (err, result) => {
-//                             if (err) return callback(err);
-//                         })
-//                     })
-//                     .catch(error => {
-//                         console.error("Error:", error.response ? error.response.data : error.message);
-//                     });
-//             }, timeDifference);
-//         });
-//     });
-// }
-
 function PublishPostOnTelegram(postId) {
     return new Promise((resolve, reject) => {
         const query = `SELECT * FROM posts WHERE id = ${postId}`;
@@ -189,9 +138,9 @@ function ScheduleDaily(timeToPublish, task) {
     currentJob = schedule.scheduleJob(rule, task);
 }
 
-ScheduleDaily({ hour: 19, minute: 36 }, Task)
+ScheduleDaily({ hour: 20, minute: 51 }, Task)
 
-const time = { hour: 19, minute: 38 };
+const time = { hour: 20, minute: 53 };
 const timeBetween2Posts = 1
 async function getAllChannels() {
     const query = `SELECT * FROM channels where status =1`;
@@ -212,7 +161,6 @@ async function Task() {
         return;
     }
 
-    // Dùng Promise.all để chạy các yêu cầu đồng thời (nếu cần)
     const promises = channels.map(async (item, i) => {
         var today = new Date();
         today.setHours(0, 0, 0, 0);

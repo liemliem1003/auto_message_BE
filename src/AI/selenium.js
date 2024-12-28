@@ -5,6 +5,15 @@ const chrome = require('selenium-webdriver/chrome');
 
 const options = new chrome.Options();
 
+// options.addArguments('--headless');
+// options.addArguments('--disable-gpu');
+// options.addArguments('--blink-settings=imagesEnabled=false');
+// options.addArguments('--disable-webrtc');
+// // options.addArguments('--disable-javascript');
+// options.addArguments('--disable-blink-features=AutomationControlled');
+// options.addArguments('--no-sandbox');
+// options.addArguments('--window-size=1920,1080');
+
 options.addArguments('--headless=new'); // Sử dụng headless cải tiến
 options.addArguments('--disable-blink-features=AutomationControlled');
 options.addArguments('--no-sandbox');
@@ -26,6 +35,7 @@ async function SeleniumForBybit() {
 }
 
 async function GetListOfLinkBybit(link) {
+    options.addArguments('--headless');
     // Chỉ định đường dẫn tới chromedriver (nếu không nằm trong PATH)
     const chromeDriverPath = Path;
     let driver = await new Builder()
@@ -134,6 +144,7 @@ async function SeleniumForCoinTeleGraph(lastLink) {
             break;
         }
     }
+    link == "" ? link = linkToCoinTeleGraph[0] : true
     var result = await GetContentsOfCointelegraph(link)
     return {
         result:result,
@@ -189,13 +200,10 @@ async function GetContentsOfCointelegraph(href) {
         .build();
 
     try {
+        console.log("test: " + href);
         await driver.get(href);
-        console.log(href);
-        
         const article = await driver.findElement(By.className('post__article'));
-        
         const text = await article.getText();
-
         const img = await driver.findElement(By.className('lazy-image__img type:primaryImage'));
 
         var src = await img.getAttribute('src');
@@ -208,13 +216,13 @@ async function GetContentsOfCointelegraph(href) {
     }
 }
 
-// async function main() {
-//     const lastLink = "https://cointelegraph.com/news/galaxy-digital-research-united-states-government-bitcoin-buy-2025-prediction";
-//     const result = await SeleniumForCoinTeleGraph(lastLink);
-//     console.log("result:"+result.result);
-// }
+async function main() {
+    const lastLink = "https://cointelegraph.com/news/price-analysis-12-27-btc-eth-xrp-bnb-sol-doge-ada-avax-link-ton";
+    const result = await SeleniumForCoinTeleGraph(lastLink);
+    console.log("result:"+result.result);
+}
 
-// main();
+main();
 
 module.exports = {
     SeleniumForBybit,
