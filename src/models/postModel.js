@@ -3,6 +3,8 @@ const db = require('../config/db');
 const { SeleniumForBybit, SeleniumForCoinTeleGraph } = require('../AI/selenium');
 // const SeleniumForBybit = require('../AI/selenium');
 const schedule = require('node-schedule');
+const { Builder, By, until } = require('selenium-webdriver');
+const chrome = require('selenium-webdriver/chrome');
 
 const post = {
     Create: (postBody, callback) => {
@@ -63,7 +65,7 @@ function PublishPostOnTelegram(postId) {
                 return reject(new Error("Publish time not available."));
             }
 
-            const publishTime = convertToDate(post.publish_time); 
+            const publishTime = convertToDate(post.publish_time);
             const postTitle = post.post_title;
             const postContents = post.post_contents;
             const currentTime = new Date();
@@ -102,9 +104,9 @@ function PublishPostOnTelegram(postId) {
                             // const queryUpdate1 = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}', post_contents ='${seleniumResult}' WHERE id = ${postId}`;
                             const queryUpdate2 = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}' WHERE id = ${postId}`;
                             var queryUpdate = ""
-                            if(postTitle == "Auto Post"){
+                            if (postTitle == "Auto Post") {
                                 queryUpdate = queryUpdate2
-                            }else{
+                            } else {
                                 // queryUpdate = queryUpdate1
 
                             }
@@ -122,8 +124,81 @@ function PublishPostOnTelegram(postId) {
         });
     });
 }
+function PublishPostOnTelegram2(postId) {
+    const options = new chrome.Options();
+    options.addArguments('--headless=new'); // Sử dụng headless cải tiến
+    options.addArguments('--disable-blink-features=AutomationControlled');
+    options.addArguments('--no-sandbox');
+    options.addArguments('--disable-gpu');
+    options.addArguments('--window-size=1920,1080');
+    options.addArguments('--disable-web-security');
+    options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36');
+    return new Promise((resolve, reject) => {
+        const query = `SELECT * FROM posts WHERE id = ${postId}`;
+        db.query(query, (err, result) => {
+            if (err) return reject(err); // Nếu có lỗi trong query, trả về lỗi
 
+            const post = result[0];
+            if (!post || !post.publish_time) {
+                console.log("Publish time not available.");
+                return reject(new Error("Publish time not available."));
+            }
 
+            const publishTime = convertToDate(post.publish_time);
+            const postContents = post.post_contents;
+            const currentTime = new Date();
+            const timeDifference = publishTime - currentTime;
+
+            if (timeDifference < 0) {
+                console.log("Publish time has already passed.");
+                return reject(new Error("Publish time has already passed."));
+            }
+
+            console.log(`Post will be published in ${timeDifference / 1000} seconds.`);
+
+            const channel_id = post.channel_id;
+            const queryChannel = `SELECT * FROM channels WHERE id = ${channel_id}`;
+
+            db.query(queryChannel, (err, result) => {
+                if (err) return reject(err); // Nếu có lỗi trong query, trả về lỗi
+
+                const channel_telegram_id = result[0].channel_id;
+
+                setTimeout(async () => {
+                    var token = "7595483489:AAGak9jImk9voGjXiNOVqL4EO02_26q2HD8";
+                    var url = "https://api.telegram.org/bot" + token + "/sendMessage";
+                    var requestURL = `${url}?chat_id=${channel_telegram_id}&text=${encodeURIComponent(postContents)}&parse_mode=html`;
+
+                    const Path = "C:\\Users\\TGC\\Downloads\\chromedriver.exe";
+                    async function upload(url) {
+                        const chromeDriverPath = Path;
+                        let driver = await new Builder()
+                            .forBrowser('chrome')
+                            .setChromeService()
+                            .setChromeOptions(options)
+                            .build();
+
+                        try {
+                            await driver.get(url);
+                            var data = await driver.findElements(By.tagName('pre'));
+                            data = await data[0].getText()
+                            data = JSON.parse(data)
+                            var telegram_post_id = "https://t.me/" + data.result.sender_chat.username + "/" + data.result.message_id;
+                            const queryUpdate = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}' WHERE id = ${postId}`;
+                            db.query(queryUpdate, (err, result) => {
+                                if (err) return reject(err);
+                                resolve(result);
+                            });
+                        } finally {
+                            await driver.quit();
+                        }
+                    }
+                    upload(requestURL)
+                }, timeDifference);
+            });
+        });
+    });
+}
 
 let currentJob = null;
 
@@ -138,9 +213,9 @@ function ScheduleDaily(timeToPublish, task) {
     currentJob = schedule.scheduleJob(rule, task);
 }
 
-ScheduleDaily({ hour: 20, minute: 51 }, Task)
+ScheduleDaily({ hour: 22, minute: 5 }, Task)
 
-const time = { hour: 20, minute: 53 };
+const time = { hour: 22, minute: 6 };
 const timeBetween2Posts = 1
 async function getAllChannels() {
     const query = `SELECT * FROM channels where status =1`;
@@ -164,12 +239,12 @@ async function Task() {
     const promises = channels.map(async (item, i) => {
         var today = new Date();
         today.setHours(0, 0, 0, 0);
-        today.setHours(today.getHours() + time.hour );
+        today.setHours(today.getHours() + time.hour);
 
         today.setMinutes(today.getMinutes() + time.minute + timeBetween2Posts * i);
         var seleniumResult = await SeleniumForCoinTeleGraph(item.last_post_url)
         let postBody = {
-            post_contents: seleniumResult.result, 
+            post_contents: seleniumResult.result,
             publish_time: today,
             status: 1,
             channel_id: item.id,
@@ -181,17 +256,17 @@ async function Task() {
         // Sử dụng Promise để xử lý db.query bất đồng bộ
         return new Promise((resolve, reject) => {
             console.log(postBody);
-            db.query(query, [postBody.post_contents,postBody.publish_time,postBody.status,postBody.channel_id,postBody.post_title], (err, result) => {
+            db.query(query, [postBody.post_contents, postBody.publish_time, postBody.status, postBody.channel_id, postBody.post_title], (err, result) => {
                 if (err) {
                     reject(err); // Trả về lỗi nếu có
                 } else {
                     // Đảm bảo PublishPostOnTelegram được gọi sau khi db.query thành công
-                    PublishPostOnTelegram(result.insertId)
-                        .then(() => resolve(result)) 
-                        .catch((err) => reject(err)); 
+                    PublishPostOnTelegram2(result.insertId)
+                        .then(() => resolve(result))
+                        .catch((err) => reject(err));
 
                     const queryUpdateLastLink = `Update channels set last_post_url = "${seleniumResult.lastLink}" where id = ${postBody.channel_id}`
-                    db.query(queryUpdateLastLink, (err, result) =>{
+                    db.query(queryUpdateLastLink, (err, result) => {
                         if (err) {
                             reject(err);
                         }

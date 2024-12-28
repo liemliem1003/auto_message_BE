@@ -1,6 +1,6 @@
 const { Builder, By, until } = require('selenium-webdriver');
-const CohereAI = require('./CohereAI');
 const chrome = require('selenium-webdriver/chrome');
+const CohereAI = require('./CohereAI');
 
 
 const options = new chrome.Options();
@@ -216,13 +216,13 @@ async function GetContentsOfCointelegraph(href) {
     }
 }
 
-async function main() {
-    const lastLink = "https://cointelegraph.com/news/price-analysis-12-27-btc-eth-xrp-bnb-sol-doge-ada-avax-link-ton";
-    const result = await SeleniumForCoinTeleGraph(lastLink);
-    console.log("result:"+result.result);
-}
+// async function main() {
+//     const lastLink = "https://cointelegraph.com/news/price-analysis-12-27-btc-eth-xrp-bnb-sol-doge-ada-avax-link-ton";
+//     const result = await SeleniumForCoinTeleGraph(lastLink);
+//     console.log("result:"+result.result);
+// }
 
-main();
+// main();
 
 module.exports = {
     SeleniumForBybit,
