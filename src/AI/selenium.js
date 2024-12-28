@@ -4,11 +4,15 @@ const chrome = require('selenium-webdriver/chrome');
 
 
 const options = new chrome.Options();
-// options.addArguments('--headless');  // Chạy Chrome mà không mở cửa sổ
+
+options.addArguments('--headless=new'); // Sử dụng headless cải tiến
+options.addArguments('--disable-blink-features=AutomationControlled');
+options.addArguments('--no-sandbox');
 options.addArguments('--disable-gpu');
-options.addArguments('--blink-settings=imagesEnabled=false');
-options.addArguments('--disable-webrtc');
-options.addArguments('--disable-javascript');
+options.addArguments('--window-size=1920,1080');
+options.addArguments('--disable-web-security');
+options.addArguments('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36');
+
 
 const Path = "C:\\Users\\TGC\\Downloads\\chromedriver.exe";
 
@@ -22,7 +26,6 @@ async function SeleniumForBybit() {
 }
 
 async function GetListOfLinkBybit(link) {
-    options.addArguments('--headless');
     // Chỉ định đường dẫn tới chromedriver (nếu không nằm trong PATH)
     const chromeDriverPath = Path;
     let driver = await new Builder()
@@ -140,14 +143,17 @@ async function SeleniumForCoinTeleGraph(lastLink) {
 
 async function GetListOfLinkCoinTeleGraph(link) {
     // Chỉ định đường dẫn tới chromedriver (nếu không nằm trong PATH)
+   
+    
     const chromeDriverPath = Path;
     let driver = await new Builder()
         .forBrowser('chrome')
         .setChromeService()
         .setChromeOptions(options)
         .build();
-
+        
     try {
+        
         await driver.get(link);
         const articleContainer = await driver.findElement(By.className('market-news__list'));
         const articleList = await articleContainer.findElements(By.tagName('a'));
@@ -202,13 +208,13 @@ async function GetContentsOfCointelegraph(href) {
     }
 }
 
-async function main() {
-    const lastLink = "https://cointelegraph.com/news/galaxy-digital-research-united-states-government-bitcoin-buy-2025-prediction";
-    const result = await SeleniumForCoinTeleGraph(lastLink);
-    console.log("result:"+result.result);
-}
+// async function main() {
+//     const lastLink = "https://cointelegraph.com/news/galaxy-digital-research-united-states-government-bitcoin-buy-2025-prediction";
+//     const result = await SeleniumForCoinTeleGraph(lastLink);
+//     console.log("result:"+result.result);
+// }
 
-main();
+// main();
 
 module.exports = {
     SeleniumForBybit,

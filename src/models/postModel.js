@@ -189,9 +189,9 @@ function ScheduleDaily(timeToPublish, task) {
     currentJob = schedule.scheduleJob(rule, task);
 }
 
-ScheduleDaily({ hour: 18, minute: 34 }, Task)
+ScheduleDaily({ hour: 19, minute: 36 }, Task)
 
-const time = { hour: 18, minute: 36 };
+const time = { hour: 19, minute: 38 };
 const timeBetween2Posts = 1
 async function getAllChannels() {
     const query = `SELECT * FROM channels where status =1`;
@@ -215,7 +215,6 @@ async function Task() {
     // Dùng Promise.all để chạy các yêu cầu đồng thời (nếu cần)
     const promises = channels.map(async (item, i) => {
         var today = new Date();
-        // today.setHours(today.getHours() + 7);
         today.setHours(0, 0, 0, 0);
         today.setHours(today.getHours() + time.hour );
 
