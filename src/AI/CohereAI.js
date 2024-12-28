@@ -5,7 +5,7 @@ async function CohereAI(text) {
     const URL = 'https://api.cohere.ai/generate';
     var body = {
         model: 'command-xlarge-nightly',
-        prompt: 'rewrite in exactly 100 tokens including breakline and decoration: ' + text,
+        prompt: 'this is a post for telegram, please rewrite in exactly 100 tokens including breakline for each part of post, decoration and some telegram icons: ' + text,
         max_tokens: 1000,
         temperature: 0.7,
     };

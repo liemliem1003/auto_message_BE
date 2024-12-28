@@ -1,6 +1,7 @@
 const { json } = require('express');
 const db = require('../config/db');
-const SeleniumForBybit = require('../AI/selenium');
+const { SeleniumForBybit, SeleniumForCoinTeleGraph } = require('../AI/selenium');
+// const SeleniumForBybit = require('../AI/selenium');
 const schedule = require('node-schedule');
 
 const post = {
@@ -113,7 +114,9 @@ function PublishPostOnTelegram(postId) {
                 return reject(new Error("Publish time not available."));
             }
 
-            const publishTime = convertToDate(post.publish_time); // Hàm convertToDate cần được định nghĩa
+            const publishTime = convertToDate(post.publish_time); 
+            const postTitle = post.post_title;
+            const postContents = post.post_contents;
             const currentTime = new Date();
             const timeDifference = publishTime - currentTime;
 
@@ -135,15 +138,27 @@ function PublishPostOnTelegram(postId) {
                 setTimeout(async () => {
                     var token = "7595483489:AAGak9jImk9voGjXiNOVqL4EO02_26q2HD8";
                     var url = "https://api.telegram.org/bot" + token + "/sendMessage";
-                    var seleniumResult = await SeleniumForBybit();
-                    var requestURL = `${url}?chat_id=${channel_telegram_id}&text=${encodeURIComponent(seleniumResult)}&parse_mode=html`;
+                    // var seleniumResult = "";
+
+                    // if(!postContents){
+                    //     seleniumResult = await SeleniumForBybit();
+                    // }
+
+                    var requestURL = `${url}?chat_id=${channel_telegram_id}&text=${encodeURIComponent(postContents)}&parse_mode=html`;
 
                     // Sử dụng axios để gửi request
                     axios.get(requestURL)
                         .then(response => {
                             var telegram_post_id = "https://t.me/" + response.data.result.sender_chat.username + "/" + response.data.result.message_id;
-                            const queryUpdate = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}', post_contents ='${seleniumResult}' WHERE id = ${postId}`;
+                            // const queryUpdate1 = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}', post_contents ='${seleniumResult}' WHERE id = ${postId}`;
+                            const queryUpdate2 = `UPDATE posts SET status = 2, telegram_post_id = '${telegram_post_id}' WHERE id = ${postId}`;
+                            var queryUpdate = ""
+                            if(postTitle == "Auto Post"){
+                                queryUpdate = queryUpdate2
+                            }else{
+                                // queryUpdate = queryUpdate1
 
+                            }
                             db.query(queryUpdate, (err, result) => {
                                 if (err) return reject(err); // Nếu có lỗi trong query update, trả về lỗi
                                 resolve(result); // Nếu thành công, trả về kết quả
@@ -174,9 +189,9 @@ function ScheduleDaily(timeToPublish, task) {
     currentJob = schedule.scheduleJob(rule, task);
 }
 
-ScheduleDaily({hour: 21, minute: 15}, Task)
+ScheduleDaily({ hour: 18, minute: 34 }, Task)
 
-const time = { hour: 21, minute: 30 };
+const time = { hour: 18, minute: 36 };
 const timeBetween2Posts = 1
 async function getAllChannels() {
     const query = `SELECT * FROM channels where status =1`;
@@ -205,9 +220,9 @@ async function Task() {
         today.setHours(today.getHours() + time.hour );
 
         today.setMinutes(today.getMinutes() + time.minute + timeBetween2Posts * i);
-
+        var seleniumResult = await SeleniumForCoinTeleGraph(item.last_post_url)
         let postBody = {
-            post_contents: await SeleniumForBybit(), // Chờ SeleniumForBybit
+            post_contents: seleniumResult.result, 
             publish_time: today,
             status: 1,
             channel_id: item.id,
@@ -219,7 +234,6 @@ async function Task() {
         // Sử dụng Promise để xử lý db.query bất đồng bộ
         return new Promise((resolve, reject) => {
             console.log(postBody);
-            
             db.query(query, [postBody.post_contents,postBody.publish_time,postBody.status,postBody.channel_id,postBody.post_title], (err, result) => {
                 if (err) {
                     reject(err); // Trả về lỗi nếu có
@@ -228,6 +242,13 @@ async function Task() {
                     PublishPostOnTelegram(result.insertId)
                         .then(() => resolve(result)) 
                         .catch((err) => reject(err)); 
+
+                    const queryUpdateLastLink = `Update channels set last_post_url = "${seleniumResult.lastLink}" where id = ${postBody.channel_id}`
+                    db.query(queryUpdateLastLink, (err, result) =>{
+                        if (err) {
+                            reject(err);
+                        }
+                    })
                 }
             });
         });
